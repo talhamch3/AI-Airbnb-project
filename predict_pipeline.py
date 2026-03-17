@@ -1,45 +1,51 @@
-import mlflow.pyfunc
 import pandas as pd
+import mlflow.pyfunc
 
-# Load the latest version of your registered model
+# 1️⃣ Model configuration
 MODEL_NAME = "AirbnbPriceModel"
+
+# 2️⃣ Load latest registered model from MLflow
 model = mlflow.pyfunc.load_model(f"models:/{MODEL_NAME}/latest")
 
 
 def predict_price(bedrooms, bathrooms, availability_rate, review_count):
     """
-    Predict Airbnb price for a single listing.
+    Predict Airbnb listing price.
 
-    Parameters:
-        bedrooms (float)
-        bathrooms (float)
-        availability_rate (float, 0-1)
-        review_count (int)
+    Parameters
+    ----------
+    bedrooms : float
+    bathrooms : float
+    availability_rate : float
+    review_count : int
 
-    Returns:
-        float: predicted price
+    Returns
+    -------
+    float : predicted Airbnb price
     """
 
-    # Prepare input as a DataFrame
-    input_df = pd.DataFrame([{
+    # 3️⃣ Prepare input data
+    input_data = pd.DataFrame([{
         "bedrooms": bedrooms,
         "bathrooms": bathrooms,
         "availability_rate": availability_rate,
         "review_count": review_count
     }])
 
-    # Predict
-    prediction = model.predict(input_df)
+    # 4️⃣ Generate prediction
+    prediction = model.predict(input_data)
 
     return prediction[0]
 
 
-# Example usage
+# 5️⃣ Example test prediction
 if __name__ == "__main__":
-    example_price = predict_price(
+
+    predicted_price = predict_price(
         bedrooms=1,
         bathrooms=1,
         availability_rate=0.5,
         review_count=30
     )
-    print("Predicted Airbnb Price:", example_price)
+
+    print("Predicted Airbnb Price:", predicted_price)
