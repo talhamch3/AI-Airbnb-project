@@ -2,7 +2,7 @@
 FROM python:3.9-slim    
 WORKDIR /app
 COPY fastapi_app.py .
-COPY scaler.joblib .
+# COPY scaler.joblib .
 RUN pip install mlflow joblib numpy scikit-learn fastapi uvicorn
 # export mlflow tracking uri and registry uri as environment variables
 ENV MLFLOW_TRACKING_URI=http://host.docker.internal:5001
