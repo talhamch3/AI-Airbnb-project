@@ -29,6 +29,7 @@ def get_model():
     global model_client
     if model_client is None:
         model_client = mlflow.pyfunc.load_model(f"models:/{MODEL_NAME}/latest")
+        #model_client = mlflow.pyfunc.load_model(f"models:/{MODEL_NAME}/Production")
     return model_client
 
 

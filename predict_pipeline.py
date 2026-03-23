@@ -6,6 +6,7 @@ MODEL_NAME = "AirbnbPriceModel"
 
 # 2️⃣ Load latest registered model from MLflow
 model = mlflow.pyfunc.load_model(f"models:/{MODEL_NAME}/latest")
+# model = mlflow.pyfunc.load_model(f"models:/{MODEL_NAME}/Production")
 
 
 def predict_price(bedrooms, bathrooms, availability_rate, review_count):
