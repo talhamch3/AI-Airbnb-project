@@ -24,11 +24,11 @@ class Listing(BaseModel):
     review_count: float
 
 
-# 4️⃣ Load model (lazy loading)
+# 4️⃣ Load model
 def get_model():
     global model_client
     if model_client is None:
-        model_client = mlflow.pyfunc.load_model(f"models:/{MODEL_NAME}/latest")
+        model_client = mlflow.pyfunc.load_model("models:/AirbnbPriceModel@best")
         #model_client = mlflow.pyfunc.load_model(f"models:/{MODEL_NAME}/Production")
     return model_client
 

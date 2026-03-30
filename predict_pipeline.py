@@ -4,8 +4,10 @@ import mlflow.pyfunc
 # 1️⃣ Model configuration
 MODEL_NAME = "AirbnbPriceModel"
 
+mlflow.set_tracking_uri("http://127.0.0.1:5000")
+
 # 2️⃣ Load latest registered model from MLflow
-model = mlflow.pyfunc.load_model(f"models:/{MODEL_NAME}/latest")
+model = mlflow.pyfunc.load_model("models:/AirbnbPriceModel@best")
 # model = mlflow.pyfunc.load_model(f"models:/{MODEL_NAME}/Production")
 
 
