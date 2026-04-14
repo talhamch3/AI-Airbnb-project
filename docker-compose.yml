@@ -12,6 +12,7 @@ services:
       --port 5000
       --backend-store-uri sqlite:///mlflow.db
       --default-artifact-root ./mlruns
+      --allowed-hosts "*"
 
   airbnb_api:
     build: .
