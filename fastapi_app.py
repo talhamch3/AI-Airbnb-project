@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 
 # 1️⃣ Connect to MLflow server
-mlflow.set_tracking_uri("http://127.0.0.1:5000")
+mlflow.set_tracking_uri("http://mlflow_server:5000")
 
 # 2️⃣ Create FastAPI app
 app = FastAPI(title="Airbnb Price Prediction API")
@@ -28,7 +28,7 @@ class Listing(BaseModel):
 def get_model():
     global model_client
     if model_client is None:
-        model_client = mlflow.pyfunc.load_model("models:/AirbnbPriceModel@best")
+        model_client = mlflow.pyfunc.load_model("models:/AirbnbPriceModel/latest")
         #model_client = mlflow.pyfunc.load_model(f"models:/{MODEL_NAME}/Production")
     return model_client
 

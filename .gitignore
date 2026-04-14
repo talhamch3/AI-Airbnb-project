@@ -2,4 +2,4 @@ mlruns/
 __pycache__/
 mlartifacts/
 mlflow.db
-
+data/

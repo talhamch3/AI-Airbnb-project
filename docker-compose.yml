@@ -1,0 +1,24 @@
+version: "3"
+
+services:
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: mlflow_server
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./mlruns:/mlruns
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --allowed-hosts '*'
+
+  api:
+    build: .
+    container_name: airbnb_api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mlflow

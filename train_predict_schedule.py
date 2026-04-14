@@ -10,7 +10,7 @@ from data_preprocessing import load_and_preprocess_data
 # -------------------------------
 # MLflow Setup
 # -------------------------------
-mlflow.set_tracking_uri("http://127.0.0.1:5000")
+mlflow.set_tracking_uri("http://mlflow_server:5000")
 
 MODEL_NAME = "AirbnbPriceModel"
 
@@ -19,7 +19,7 @@ MODEL_NAME = "AirbnbPriceModel"
 # 1. Load Model (latest)
 # -------------------------------
 def load_model():
-    model = mlflow.pyfunc.load_model("models:/AirbnbPriceModel@best")
+    model = mlflow.pyfunc.load_model("models:/AirbnbPriceModel/latest")
     return model
 
 

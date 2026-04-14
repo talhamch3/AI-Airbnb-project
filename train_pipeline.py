@@ -1,6 +1,7 @@
 import numpy as np
 import mlflow
 import mlflow.sklearn
+import os
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
@@ -10,7 +11,8 @@ from data_preprocessing import load_and_preprocess_data
 
 
 # 1️⃣ Connect to MLflow server
-mlflow.set_tracking_uri("http://127.0.0.1:5000")
+mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow_server:5000")
+mlflow.set_tracking_uri(mlflow_uri)
 mlflow.set_experiment("Airbnb Price Prediction")
 
 

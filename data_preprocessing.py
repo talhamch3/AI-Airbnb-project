@@ -3,9 +3,9 @@ import pandas as pd
 def load_and_preprocess_data():
 
     # 1️⃣ Load datasets
-    listings = pd.read_csv("/Users/talhamurtaza/Downloads/AI/listings.csv")
-    calendar = pd.read_csv("/Users/talhamurtaza/Downloads/AI/calendar.csv")
-    reviews = pd.read_csv("/Users/talhamurtaza/Downloads/AI/reviews.csv")
+    listings = pd.read_csv("data/listings.csv")
+    calendar = pd.read_csv("data/calendar.csv")
+    reviews = pd.read_csv("data/reviews.csv")
 
     # 2️⃣ Ensure listing ID column is consistent
     if "id" in listings.columns:
