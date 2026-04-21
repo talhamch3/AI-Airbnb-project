@@ -92,7 +92,7 @@ def get_model_batch():
     y = df["price"].copy()
 
     # Sample batch
-    batch = X.sample(n=50, random_state=42)
+    batch = X.sample(n=150, random_state=42)
     actual = y.loc[batch.index]
 
     return batch, actual
