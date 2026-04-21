@@ -7,24 +7,24 @@ import numpy as np
 from datetime import datetime
 
 
-# -------------------------------
-# MLflow setup (connect to server inside Docker)
-# -------------------------------
+# =========================================================
+# 🔌 MLflow setup (connect to MLflow container)
+# =========================================================
 mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow_server:5000")
 mlflow.set_tracking_uri(mlflow_uri)
 mlflow.set_experiment("Airbnb Price Prediction")
 
 
-# -------------------------------
-# 1. Load latest model from MLflow
-# -------------------------------
+# =========================================================
+# 📦 1. Load latest model from MLflow registry
+# =========================================================
 def load_model():
     return mlflow.pyfunc.load_model("models:/AirbnbPriceModel/latest")
 
 
-# -------------------------------
-# 2. Season mapping (for analytics only)
-# -------------------------------
+# =========================================================
+# 🌦️ 2. Season mapping helper
+# =========================================================
 def get_season(month):
     if month in [12, 1, 2]:
         return "Winter"
@@ -37,30 +37,31 @@ def get_season(month):
 
 
 # =========================================================
-# 🧠 MODEL MONITORING (RMSE)
+# 📊 3. GENERATE BATCH (THIS IS THE CORE CHANGE)
+# Everything below will use THIS batch only
 # =========================================================
-def get_model_batch():
+def get_batch():
 
     # Load datasets
     listings = pd.read_csv("data/listings.csv")
     calendar = pd.read_csv("data/calendar.csv")
     reviews = pd.read_csv("data/reviews.csv")
 
-    # Ensure consistent column name
+    # Standardize ID column
     if "id" in listings.columns:
         listings.rename(columns={"id": "listing_id"}, inplace=True)
 
-    # -----------------------------
-    # Feature engineering (same as training)
-    # -----------------------------
+    # -------------------------
+    # CLEAN + FEATURE ENGINEERING
+    # -------------------------
 
-    # Clean price column
+    # Convert price from string → float
     listings["price"] = listings["price"].replace(r"[\$,]", "", regex=True).astype(float)
 
     # Convert availability to numeric
     calendar["available"] = calendar["available"].map({"t": 1, "f": 0})
 
-    # Compute availability rate per listing
+    # Availability rate per listing
     availability = (
         calendar.groupby("listing_id")["available"]
         .mean()
@@ -68,14 +69,14 @@ def get_model_batch():
         .rename(columns={"available": "availability_rate"})
     )
 
-    # Count reviews per listing
+    # Review count per listing
     review_counts = (
         reviews.groupby("listing_id")
         .size()
         .reset_index(name="review_count")
     )
 
-    # Merge features into one dataframe
+    # Merge everything
     df = listings.merge(availability, on="listing_id", how="left")
     df = df.merge(review_counts, on="listing_id", how="left")
 
@@ -83,39 +84,58 @@ def get_model_batch():
     df["availability_rate"] = df["availability_rate"].fillna(0)
     df["review_count"] = df["review_count"].fillna(0)
 
-    # Select model features
-    features = ["bedrooms", "bathrooms", "availability_rate", "review_count"]
-
-    df = df.dropna(subset=features + ["price"])
-
-    X = df[features].copy()
-    y = df["price"].copy()
-
-    # Sample batch
-    batch = X.sample(n=150, random_state=42)
-    actual = y.loc[batch.index]
-
-    return batch, actual
-
-
-# =========================================================
-# 📊 DATA MONITORING (SEASONAL)
-# =========================================================
-def get_seasonal_metrics():
-
-    calendar = pd.read_csv("data/calendar.csv")
-
-    # Convert availability
-    calendar["available"] = calendar["available"].map({"t": 1, "f": 0})
-
-    # Extract time features
+    # Add time-based features (for seasonal analysis)
     calendar["date"] = pd.to_datetime(calendar["date"])
     calendar["month"] = calendar["date"].dt.month
-
-    # Map to season
     calendar["season"] = calendar["month"].apply(get_season)
 
-    # Compute average availability per season
+
+    # Drop missing essential values
+    df = df.dropna(subset=["bedrooms", "bathrooms", "price"])
+
+    # -------------------------
+    # SAMPLE BATCH (SIMULATES NEW DATA)
+    # -------------------------
+    batch = df.sample(n=100, random_state=None).copy()
+
+    return batch
+
+
+# =========================================================
+# 🧠 4. MODEL MONITORING (RMSE)
+# =========================================================
+def compute_rmse(batch, model):
+
+    # Features used in training
+    features = ["bedrooms", "bathrooms", "availability_rate", "review_count"]
+
+    X = batch[features]
+    y = batch["price"]
+
+    preds = model.predict(X)
+
+    rmse = np.sqrt(((y - preds) ** 2).mean())
+
+    return rmse
+
+
+# =========================================================
+# 🌦️ 5. SEASONAL MONITORING (FROM BATCH)
+# =========================================================
+def compute_seasonal_metrics(batch):
+
+    # Reload calendar (full time-series data)
+    calendar = pd.read_csv("data/calendar.csv")
+
+    calendar["available"] = calendar["available"].map({"t": 1, "f": 0})
+    calendar["date"] = pd.to_datetime(calendar["date"])
+    calendar["month"] = calendar["date"].dt.month
+    calendar["season"] = calendar["month"].apply(get_season)
+
+    # 🔥 KEY FIX: filter calendar to ONLY batch listings
+    calendar = calendar[calendar["listing_id"].isin(batch["listing_id"])]
+
+    # Compute seasonal availability properly
     seasonal = (
         calendar.groupby("season")["available"]
         .mean()
@@ -137,50 +157,21 @@ def get_seasonal_metrics():
 
 
 # =========================================================
-# 🏠 NEW: LISTING-LEVEL MONITORING
-# bedrooms + availability_rate (NO DUPLICATES)
+# 🏠 6. LISTING-LEVEL METRICS (FROM BATCH)
 # =========================================================
-def get_listing_metrics():
+def compute_listing_metrics(batch):
 
-    listings = pd.read_csv("data/listings.csv")
-    calendar = pd.read_csv("data/calendar.csv")
+    # Only keep relevant columns
+    df = batch[["listing_id", "bedrooms", "availability_rate"]].copy()
 
-    # Standardize column name
-    if "id" in listings.columns:
-        listings.rename(columns={"id": "listing_id"}, inplace=True)
-
-    # Convert availability
-    calendar["available"] = calendar["available"].map({"t": 1, "f": 0})
-
-    # Compute availability rate per listing
-    availability = (
-        calendar.groupby("listing_id")["available"]
-        .mean()
-        .reset_index()
-        .rename(columns={"available": "availability_rate"})
-    )
-
-    # Select ONLY needed columns from listings
-    listing_info = listings[["listing_id", "bedrooms"]].copy()
-
-    # Merge bedrooms + availability_rate
-    df = listing_info.merge(availability, on="listing_id", how="inner")
-
-    # Remove duplicates (important requirement)
+    # Remove duplicates (important)
     df = df.drop_duplicates(subset=["listing_id"])
 
     return df
 
 
-# -------------------------------
-# RMSE calculation
-# -------------------------------
-def compute_rmse(actual, predicted):
-    return np.sqrt(((actual - predicted) ** 2).mean())
-
-
 # =========================================================
-# 💾 STORE EVERYTHING IN POSTGRES
+# 💾 7. STORE EVERYTHING IN POSTGRES
 # =========================================================
 def store_in_postgres(rmse, seasonal_df, listing_df):
 
@@ -194,7 +185,7 @@ def store_in_postgres(rmse, seasonal_df, listing_df):
     cur = conn.cursor()
 
     # ---------------------------
-    # 1. Model monitoring table
+    # TABLE 1: RMSE tracking
     # ---------------------------
     cur.execute("""
         CREATE TABLE IF NOT EXISTS model_monitoring (
@@ -205,7 +196,7 @@ def store_in_postgres(rmse, seasonal_df, listing_df):
     """)
 
     # ---------------------------
-    # 2. Seasonal monitoring table
+    # TABLE 2: Seasonal trends
     # ---------------------------
     cur.execute("""
         CREATE TABLE IF NOT EXISTS seasonal_availability (
@@ -217,7 +208,7 @@ def store_in_postgres(rmse, seasonal_df, listing_df):
     """)
 
     # ---------------------------
-    # 3. Listing-level monitoring table
+    # TABLE 3: Listing-level data
     # ---------------------------
     cur.execute("""
         CREATE TABLE IF NOT EXISTS listing_metrics (
@@ -249,8 +240,7 @@ def store_in_postgres(rmse, seasonal_df, listing_df):
         ))
 
     # ---------------------------
-    # Insert listing metrics (NO DUPLICATES)
-    # Uses UPSERT to avoid conflicts
+    # Insert listing metrics (UPSERT)
     # ---------------------------
     for _, row in listing_df.iterrows():
         cur.execute("""
@@ -278,31 +268,25 @@ def run_monitoring():
     print("Loading model...")
     model = load_model()
 
-    # MODEL MONITORING
-    print("Getting batch...")
-    X_batch, y_actual = get_model_batch()
-
-    print("Predicting...")
-    preds = model.predict(X_batch)
+    print("Generating batch...")
+    batch = get_batch()
 
     print("Computing RMSE...")
-    rmse = compute_rmse(y_actual, preds)
+    rmse = compute_rmse(batch, model)
     print("RMSE:", rmse)
 
-    # DATA MONITORING
     print("Computing seasonal metrics...")
-    seasonal_df = get_seasonal_metrics()
+    seasonal_df = compute_seasonal_metrics(batch)
 
-    print("Computing listing-level metrics...")
-    listing_df = get_listing_metrics()
+    print("Computing listing metrics...")
+    listing_df = compute_listing_metrics(batch)
 
-    # STORE EVERYTHING
-    print("Saving to DB...")
+    print("Saving to Postgres...")
     store_in_postgres(rmse, seasonal_df, listing_df)
 
     print("Monitoring complete.")
 
 
-# -------------------------------
+# =========================================================
 if __name__ == "__main__":
     run_monitoring()
