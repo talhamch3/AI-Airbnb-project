@@ -10,14 +10,6 @@ jobs:
   test-pipeline:
     runs-on: ubuntu-latest
 
-    services:
-      mlflow_server:
-        image: ghcr.io/mlflow/mlflow:v2.11.3
-        ports:
-          - 5000:5000
-        # FIXED: Single-line option forces entrypoint script to bind globally without breaking Docker parsing
-        options: --entrypoint mlflow server --host 0.0.0.0 --port 5000
-
     steps:
     - name: Checkout Repository Code
       uses: actions/checkout@v4
@@ -32,12 +24,19 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        # Ensure mlflow is explicitly installed in the runner toolchain
+        pip install mlflow==2.11.3
 
-    - name: Wait for MLflow & Initialize Experiment
+    - name: Launch Live Background MLflow Server
       run: |
-        # Give the container time to complete its internal setup sequence
+        # Starting MLflow with '&' runs it as a persistent background process on the host
+        mlflow server --host 127.0.0.1 --port 5000 &
+        
+        # Give the local server a few seconds to initialize and bind to port 5000
         sleep 5
-        # FIXED: Target 127.0.0.1 since port 5000 is forwarded directly to the runner host
+
+    - name: Initialize Experiment
+      run: |
         python -c "
         import mlflow
         mlflow.set_tracking_uri('http://127.0.0.1:5000')
@@ -46,7 +45,6 @@ jobs:
 
     - name: Execute Pytest Suite with Live Network Connections
       env:
-        # FIXED: Standardized to loopback address to avoid DNS discovery issues
         MLFLOW_TRACKING_URI: http://127.0.0.1:5000
       run: |
         pytest -s -v
