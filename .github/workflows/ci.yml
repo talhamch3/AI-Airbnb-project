@@ -48,3 +48,32 @@ jobs:
         MLFLOW_TRACKING_URI: http://127.0.0.1:5000
       run: |
         pytest -s -v
+
+#-------------------------------------------------------------------------
+deploy-stack:
+    runs-on: ubuntu-latest
+    needs: test-pipeline
+    # Only deploy when pushing directly or merging into the main branch
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        # The GITHUB_TOKEN is automatically provided by GitHub Actions—no setup needed
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and Tag Image as Latest
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        # Dynamically tags it under your GitHub account name with the :latest version indicator
+        tags: |
+          ghcr.io/${{ github.repository }}/monitoring-pipeline:latest
