@@ -15,10 +15,12 @@ jobs:
         image: ghcr.io/mlflow/mlflow:v2.11.3
         ports:
           - 5000:5000
-        # CRITICAL: Instructs the base image to actually execute the backend tracking server
+        # FIXED: Combined the entrypoint and startup commands directly into the options string
         options: >-
           --entrypoint mlflow
-        args: server --host 0.0.0.0 --port 5000
+          server
+          --host 0.0.0.0
+          --port 5000
 
     steps:
     - name: Checkout Repository Code
@@ -37,9 +39,8 @@ jobs:
 
     - name: Wait for MLflow & Initialize Experiment
       run: |
-        # Gives the service container a moment to spin up completely
+        # Gives the background container a brief moment to finish booting up
         sleep 5
-        # FIXED: Replaced localhost with mlflow_server to match GitHub's service discovery network
         python -c "
         import mlflow
         mlflow.set_tracking_uri('http://mlflow_server:5000')
@@ -48,7 +49,6 @@ jobs:
 
     - name: Execute Pytest Suite with Live Network Connections
       env:
-        # Maps perfectly to your monitoring script logic configuration
         MLFLOW_TRACKING_URI: http://mlflow_server:5000
       run: |
         pytest -s -v
