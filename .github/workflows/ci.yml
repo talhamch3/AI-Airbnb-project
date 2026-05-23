@@ -55,11 +55,16 @@ jobs:
     # Only deploy when pushing directly or merging into the main branch
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
+    # FIXED: Explicitly grants writing rights to the GitHub Packages registry
+    permissions:
+      contents: read
+      packages: write
+    
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    # FIXED: Convert the repository path to lowercase to comply with Docker standards
+    # Convert the repository path to lowercase to comply with Docker standards
     - name: Sanitize Repository Name to Lowercase
       id: string
       run: |
@@ -78,5 +83,5 @@ jobs:
         context: .
         file: ./Dockerfile
         push: true
-        # FIXED: Referenced the sanitized lowercase environment variable here
+        # Referenced the sanitized lowercase environment variable here
         tags: ghcr.io/${{ env.REPO_LOWERCASE }}/monitoring-pipeline:latest
