@@ -1,3 +1,4 @@
 pandas
 pytest
 scikit-learn
+mlflow
