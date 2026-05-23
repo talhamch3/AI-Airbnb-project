@@ -15,9 +15,8 @@ jobs:
         image: ghcr.io/mlflow/mlflow:v2.11.3
         ports:
           - 5000:5000
-        # FIXED: Removed options entirely and use clean environment configurations
-        env:
-          MLFLOW_TRACKING_URI: http://0.0.0.0:5000
+        # FIXED: Single-line option forces entrypoint script to bind globally without breaking Docker parsing
+        options: --entrypoint mlflow server --host 0.0.0.0 --port 5000
 
     steps:
     - name: Checkout Repository Code
@@ -36,16 +35,18 @@ jobs:
 
     - name: Wait for MLflow & Initialize Experiment
       run: |
-        # Give the background tracking server a clean window to bind its port
-        sleep 8
+        # Give the container time to complete its internal setup sequence
+        sleep 5
+        # FIXED: Target 127.0.0.1 since port 5000 is forwarded directly to the runner host
         python -c "
         import mlflow
-        mlflow.set_tracking_uri('http://mlflow_server:5000')
+        mlflow.set_tracking_uri('http://127.0.0.1:5000')
         mlflow.set_experiment('Airbnb Price Prediction')
         "
 
     - name: Execute Pytest Suite with Live Network Connections
       env:
-        MLFLOW_TRACKING_URI: http://mlflow_server:5000
+        # FIXED: Standardized to loopback address to avoid DNS discovery issues
+        MLFLOW_TRACKING_URI: http://127.0.0.1:5000
       run: |
         pytest -s -v
