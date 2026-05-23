@@ -2,3 +2,4 @@ pandas
 pytest
 scikit-learn
 mlflow
+psycopg2
