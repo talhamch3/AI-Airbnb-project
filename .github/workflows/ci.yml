@@ -15,12 +15,9 @@ jobs:
         image: ghcr.io/mlflow/mlflow:v2.11.3
         ports:
           - 5000:5000
-        # FIXED: Combined the entrypoint and startup commands directly into the options string
-        options: >-
-          --entrypoint mlflow
-          server
-          --host 0.0.0.0
-          --port 5000
+        # FIXED: Removed options entirely and use clean environment configurations
+        env:
+          MLFLOW_TRACKING_URI: http://0.0.0.0:5000
 
     steps:
     - name: Checkout Repository Code
@@ -39,8 +36,8 @@ jobs:
 
     - name: Wait for MLflow & Initialize Experiment
       run: |
-        # Gives the background container a brief moment to finish booting up
-        sleep 5
+        # Give the background tracking server a clean window to bind its port
+        sleep 8
         python -c "
         import mlflow
         mlflow.set_tracking_uri('http://mlflow_server:5000')
