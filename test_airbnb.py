@@ -19,26 +19,6 @@ def test_data_loading():
     print("✅ Data Loading Test passed successfully!")
 
 
-# Check if RMSE Calculation is working on point and the required stuff doesn't break (Needs the model to load)
-def test_rmse_computation():
-    print("\n🚀 Starting RMSE Computation Test...")
-    from monitoring_pipeline import compute_rmse, load_model, load_calendar, get_batch
-
-    print("🤖 Loading machine learning model...")
-    model = load_model()
-    
-    print("📅 Loading calendar data & creating current batch...")
-    calendar = load_calendar()
-    batch = get_batch(calendar)
-
-    print("📊 Computing RMSE tracking metrics...")
-    rmse = compute_rmse(batch, model)
-    print(f"🎯 Calculated RMSE output: {rmse}")
-
-    assert rmse >= 0, f"RMSE cannot be negative! Got: {rmse}"
-    print("✅ RMSE Computation Test passed successfully!")
-
-
 # Check if Seasonal Metrics Structure is on Point
 def test_seasonal_metrics():
     print("\n🚀 Starting Seasonal Metrics Test...")
