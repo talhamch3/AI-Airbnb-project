@@ -13,7 +13,7 @@ from datetime import datetime
 # the environment variable MLFLOW_TRACKING_URI so it works in
 # both local and Docker environments without changing the code.
 # =========================================================
-mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow_server:5000")
+mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000")
 mlflow.set_tracking_uri(mlflow_uri)
 mlflow.set_experiment("Airbnb Price Prediction")
 
