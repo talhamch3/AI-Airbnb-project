@@ -38,7 +38,7 @@ def test_seasonal_metrics():
     print("✅ Seasonal Metrics Test passed successfully!")
 
 
-# Check if listing ID is unique
+# Check if listing ID is unique!
 def test_listing_metrics():
     print("\n🚀 Starting Listing Metrics Test...")
     from monitoring_pipeline import compute_listing_metrics, load_calendar, get_batch
